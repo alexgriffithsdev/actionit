@@ -1,0 +1,28 @@
+{
+  "name": "actionit",
+  "version": "1.0.0",
+  "description": "Build great text-to-action experiences with LLMs",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "tsc -p ."
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/alexgriffithsdev/actionit.git"
+  },
+  "keywords": [
+    "LLMs",
+    "text-to-action"
+  ],
+  "author": "Actionit",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/alexgriffithsdev/actionit/issues"
+  },
+  "homepage": "https://github.com/alexgriffithsdev/actionit#readme",
+  "devDependencies": {
+    "@tsconfig/recommended": "^1.0.2",
+    "typescript": "^5.0.4"
+  }
+}

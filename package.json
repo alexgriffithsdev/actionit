@@ -23,6 +23,10 @@
   "homepage": "https://github.com/alexgriffithsdev/actionit#readme",
   "devDependencies": {
     "@tsconfig/recommended": "^1.0.2",
+    "@types/axios": "^0.14.0",
     "typescript": "^5.0.4"
+  },
+  "dependencies": {
+    "openai": "^3.2.1"
   }
 }

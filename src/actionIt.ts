@@ -1,4 +1,5 @@
 import OpenAIWrapper from "./llms/openai";
+import { getChooseFunctionPrompt, getSystemPrompt } from "./llms/prompts";
 import { isAsync } from "./utils/functions";
 
 interface ActionItOptions {
@@ -33,7 +34,13 @@ class ActionIt {
 
   private functionMap: { [key: string]: ActionItFunction } = {};
 
+  private systemPrompt = getSystemPrompt();
+
   constructor(options: ActionItOptions) {
+    if (!options.open_ai_api_key) {
+      throw new Error("Missing open_ai_api_key");
+    }
+
     this.openAiApiKey = options.open_ai_api_key;
     this.maxRetries = options.max_retries ?? 3;
     this.openAIWrapper = new OpenAIWrapper({
@@ -96,9 +103,25 @@ class ActionIt {
   }
 
   async handleNewInput(newInput: string) {
-    this.openAIWrapper.addNewUserMessage({ role: "user", content: newInput });
+    const userContent = getChooseFunctionPrompt({
+      isRetry: false,
+      query: newInput,
+      functions: Object.values(this.functionMap),
+    });
+
+    this.openAIWrapper.addNewUserMessage({
+      role: "user",
+      content: userContent,
+    });
     const completitionResponse =
-      await this.openAIWrapper.createChatRequestWithRetry();
+      await this.openAIWrapper.createChatRequestWithRetry({
+        systemPrompt: this.systemPrompt,
+      });
+
+    const functionExector =
+      this.getFunctionNameAndParamsFromResponse(completitionResponse);
+
+    await this.chooseAndExecuteFunction(functionExector);
   }
 }
 

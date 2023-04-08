@@ -4,7 +4,6 @@ import {
   CreateChatCompletionResponse,
   ChatCompletionRequestMessage,
 } from "openai";
-import { AxiosRequestConfig } from "axios";
 
 interface OpenAIWrapperOptions {
   open_ai_api_key: string;
@@ -34,10 +33,14 @@ class OpenAIWrapper {
     this.messages.push(newMessage);
   }
 
-  async createChatRequestWithRetry(): Promise<string> {
+  async createChatRequestWithRetry({
+    systemPrompt,
+  }: {
+    systemPrompt: string;
+  }): Promise<string> {
     const makeRequest = async (retries: number = 0): Promise<string> => {
       try {
-        const chatCompletion = await this.createChatCompletion();
+        const chatCompletion = await this.createChatCompletion(systemPrompt);
 
         return chatCompletion;
       } catch (error: any) {
@@ -57,20 +60,19 @@ class OpenAIWrapper {
     return makeRequest();
   }
 
-  private async createChatCompletion(
-    requestOptions?: AxiosRequestConfig
-  ): Promise<string> {
+  private async createChatCompletion(systemPrompt: string): Promise<string> {
     try {
-      const response = await this.openai.createChatCompletion(
-        {
-          model: "gpt-3.5-turbo",
-          messages: this.messages,
-          max_tokens: this.maxTokens,
-        },
-        requestOptions
-      );
+      const response = await this.openai.createChatCompletion({
+        model: "gpt-3.5-turbo",
+        messages: [{ role: "system", content: systemPrompt }, ...this.messages],
+        max_tokens: this.maxTokens,
+      });
       const answer = response.data as CreateChatCompletionResponse;
-      return answer.choices[0]?.message?.content || "";
+
+      const answerString = answer.choices[0]?.message?.content || "";
+      this.messages.push({ role: "assistant", content: answerString });
+
+      return answerString;
     } catch (error: any) {
       if (error.response) {
         console.log(error.response.status);

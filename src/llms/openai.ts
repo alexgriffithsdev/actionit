@@ -8,18 +8,16 @@ import { AxiosRequestConfig } from "axios";
 
 interface OpenAIWrapperOptions {
   open_ai_api_key: string;
-  model: string;
   max_tokens?: number;
   max_retries: number;
-  messages: [ChatCompletionRequestMessage];
+  messages: ChatCompletionRequestMessage[];
 }
 
 class OpenAIWrapper {
   private openai: OpenAIApi;
   private maxTokens: number;
-  private model: string;
   private maxRetries: number;
-  private messages: [ChatCompletionRequestMessage];
+  private messages: ChatCompletionRequestMessage[];
 
   constructor(options: OpenAIWrapperOptions) {
     const configuration = new Configuration({
@@ -28,9 +26,12 @@ class OpenAIWrapper {
     this.openai = new OpenAIApi(configuration);
 
     this.maxTokens = options.max_tokens ?? 250;
-    this.model = options.model;
     this.maxRetries = options.max_retries;
     this.messages = options.messages;
+  }
+
+  addNewUserMessage(newMessage: ChatCompletionRequestMessage) {
+    this.messages.push(newMessage);
   }
 
   async createChatRequestWithRetry(): Promise<string> {
@@ -62,7 +63,7 @@ class OpenAIWrapper {
     try {
       const response = await this.openai.createChatCompletion(
         {
-          model: this.model,
+          model: "gpt-3.5-turbo",
           messages: this.messages,
           max_tokens: this.maxTokens,
         },

@@ -13,7 +13,6 @@ const run = async () => {
 
   const addTask = (task: Task) => {
     tasks.push(task);
-    console.log("Added task");
   };
 
   const removeTask = (taskName: string) => {
@@ -21,7 +20,6 @@ const run = async () => {
 
     if (taskIndex !== -1) {
       tasks = tasks.splice(taskIndex, 1);
-      console.log("Removed task");
     }
   };
 
@@ -54,13 +52,15 @@ const run = async () => {
       if (newDueDate) {
         tasks[taskIndex].dueDate = newDueDate;
       }
-
-      console.log("Updated task");
     }
   };
 
   const actionIt = new ActionIt({
     open_ai_api_key: process.env.OPEN_AI_API_KEY || "",
+    on_response: (response: string) => {
+      console.log(response);
+      console.log(tasks);
+    },
   });
 
   actionIt.addFunction({
@@ -106,23 +106,23 @@ const run = async () => {
     "Create a task called get food, basically I need to go and buy food by monday 21st april 2023"
   );
 
-  console.log("Tasks: ", tasks);
+  // console.log("Tasks: ", tasks);
 
   await actionIt.handleNewInput(
     "Create a task called email Dave, Need to wish Dave happy birthday for Tomorrow (29/1/2023)"
   );
 
-  console.log("Tasks: ", tasks);
+  // console.log("Tasks: ", tasks);
 
   await actionIt.handleNewInput(
     "Actually I need to delete the email dave task."
   );
 
-  console.log("Tasks: ", tasks);
+  // console.log("Tasks: ", tasks);
 
   await actionIt.handleNewInput("Update the 'get food' task to be 5/5/2023");
 
-  console.log("Tasks: ", tasks);
+  // console.log("Tasks: ", tasks);
 };
 
 run();

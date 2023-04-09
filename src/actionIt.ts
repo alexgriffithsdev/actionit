@@ -1,14 +1,20 @@
+import { ChatCompletionRequestMessage } from "openai";
 import OpenAIWrapper from "./llms/openai";
 import { getChooseFunctionPrompt, getSystemPrompt } from "./llms/prompts";
 import { isAsync } from "./utils/functions";
 
+interface AnyFunction {
+  (...args: any[]): any;
+}
+
+interface HandleResponseFunction {
+  (inputString: string): void;
+}
+
 interface ActionItOptions {
   open_ai_api_key: string;
   max_retries?: number;
-}
-
-interface AnyFunction {
-  (...args: any[]): any;
+  on_response: HandleResponseFunction;
 }
 
 export interface ActionItFunction {
@@ -27,10 +33,16 @@ interface FunctionExecutor {
   };
 }
 
+interface LlmResponseJson {
+  followUpQuestion?: string;
+  functionExecutor?: FunctionExecutor;
+}
+
 class ActionIt {
   private openAiApiKey: string;
   private maxRetries: number;
   private openAIWrapper: OpenAIWrapper;
+  private onResponseFn: HandleResponseFunction;
 
   private functionMap: { [key: string]: ActionItFunction } = {};
 
@@ -43,10 +55,11 @@ class ActionIt {
 
     this.openAiApiKey = options.open_ai_api_key;
     this.maxRetries = options.max_retries ?? 3;
+    this.onResponseFn = options.on_response;
+
     this.openAIWrapper = new OpenAIWrapper({
       open_ai_api_key: this.openAiApiKey,
       max_retries: this.maxRetries,
-      messages: [],
     });
   }
 
@@ -78,9 +91,7 @@ class ActionIt {
     }
   }
 
-  private getFunctionNameAndParamsFromResponse(
-    response: string
-  ): FunctionExecutor {
+  private handleLlmResponse(response: string): LlmResponseJson {
     let jsonResponse;
 
     try {
@@ -95,53 +106,61 @@ class ActionIt {
       }
     }
 
-    return {
-      name: jsonResponse.function_name,
-      parameters: jsonResponse.parameters,
-    };
+    if (jsonResponse.hasOwnProperty("function_name")) {
+      return {
+        functionExecutor: {
+          name: jsonResponse.function_name,
+          parameters: jsonResponse.parameters,
+        },
+      };
+    } else if (jsonResponse.hasOwnProperty("question_response")) {
+      return {
+        followUpQuestion: jsonResponse.question_response,
+      };
+    }
+
+    throw new Error("Missing function or question response from LLM");
   }
 
-  async handleNewInput(newInput: string) {
+  async handleNewInput(singleUserMessage: string) {
     const userContent = getChooseFunctionPrompt({
       isRetry: false,
-      query: newInput,
+      query: singleUserMessage,
       functions: Object.values(this.functionMap),
     });
 
-    this.openAIWrapper.addNewUserMessage({
+    const userMessage: ChatCompletionRequestMessage = {
       role: "user",
       content: userContent,
-    });
+    };
+
     const completitionResponse =
       await this.openAIWrapper.createChatRequestWithRetry({
         systemPrompt: this.systemPrompt,
+        messages: [userMessage],
       });
 
-    let functionExector =
-      this.getFunctionNameAndParamsFromResponse(completitionResponse);
+    const completitionResponseJson =
+      this.handleLlmResponse(completitionResponse);
 
-    if (!this.functionMap.hasOwnProperty(functionExector.name)) {
-      const userRetryContent = getChooseFunctionPrompt({
-        isRetry: true,
-        query: newInput,
-        functions: Object.values(this.functionMap),
-      });
+    if (completitionResponseJson.followUpQuestion) {
+      this.onResponseFn(completitionResponseJson.followUpQuestion);
+    } else if (completitionResponseJson.functionExecutor) {
+      const functionExector: FunctionExecutor =
+        completitionResponseJson.functionExecutor;
 
-      this.openAIWrapper.addNewUserMessage({
-        role: "user",
-        content: userRetryContent,
-      });
-      const completitionRetryResponse =
-        await this.openAIWrapper.createChatRequestWithRetry({
-          systemPrompt: this.systemPrompt,
-        });
-
-      functionExector = this.getFunctionNameAndParamsFromResponse(
-        completitionRetryResponse
+      this.onResponseFn(
+        `Going to try and execute function: ${functionExector.name}`
       );
-    }
 
-    await this.chooseAndExecuteFunction(functionExector);
+      if (this.functionMap.hasOwnProperty(functionExector.name)) {
+        await this.chooseAndExecuteFunction(functionExector);
+
+        this.onResponseFn(`Function: ${functionExector.name} was executed.`);
+      }
+    } else {
+      this.onResponseFn("Sorry something went wrong, can you try again?");
+    }
   }
 }
 

@@ -4,6 +4,7 @@ import {
   CreateChatCompletionResponse,
   ChatCompletionRequestMessage,
 } from "openai";
+import { getMaxMessageSubset } from "../utils/tokenLimits";
 
 const gptTurboTokenLimit = 4096;
 
@@ -11,14 +12,12 @@ interface OpenAIWrapperOptions {
   open_ai_api_key: string;
   max_tokens?: number;
   max_retries: number;
-  messages: ChatCompletionRequestMessage[];
 }
 
 class OpenAIWrapper {
   private openai: OpenAIApi;
   private maxTokens: number;
   private maxRetries: number;
-  private messages: ChatCompletionRequestMessage[];
 
   constructor(options: OpenAIWrapperOptions) {
     const configuration = new Configuration({
@@ -28,21 +27,21 @@ class OpenAIWrapper {
 
     this.maxTokens = options.max_tokens ?? 250;
     this.maxRetries = options.max_retries;
-    this.messages = options.messages;
-  }
-
-  addNewUserMessage(newMessage: ChatCompletionRequestMessage) {
-    this.messages.push(newMessage);
   }
 
   async createChatRequestWithRetry({
     systemPrompt,
+    messages,
   }: {
     systemPrompt: string;
+    messages: ChatCompletionRequestMessage[];
   }): Promise<string> {
     const makeRequest = async (retries: number = 0): Promise<string> => {
       try {
-        const chatCompletion = await this.createChatCompletion(systemPrompt);
+        const chatCompletion = await this.createChatCompletion(
+          systemPrompt,
+          messages
+        );
 
         return chatCompletion;
       } catch (error: any) {
@@ -62,22 +61,27 @@ class OpenAIWrapper {
     return makeRequest();
   }
 
-  private async createChatCompletion(systemPrompt: string): Promise<string> {
+  private async createChatCompletion(
+    systemPrompt: string,
+    messages: ChatCompletionRequestMessage[]
+  ): Promise<string> {
     try {
-      // const messages = [
-      //   { role: "system", content: systemPrompt }:ChatRequ,
-      //   ...this.messages,
-      // ];
+      const messagesSubset = getMaxMessageSubset(
+        messages,
+        { role: "system", content: systemPrompt },
+        this.maxTokens,
+        gptTurboTokenLimit
+      );
 
       const response = await this.openai.createChatCompletion({
         model: "gpt-3.5-turbo",
-        messages: [{ role: "system", content: systemPrompt }, ...this.messages],
+        messages: messagesSubset,
         max_tokens: this.maxTokens,
       });
       const answer = response.data as CreateChatCompletionResponse;
 
       const answerString = answer.choices[0]?.message?.content || "";
-      this.messages.push({ role: "assistant", content: answerString });
+      // this.messages.push({ role: "assistant", content: answerString });
 
       return answerString;
     } catch (error: any) {

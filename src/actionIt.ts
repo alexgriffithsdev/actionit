@@ -66,16 +66,15 @@ class ActionIt {
     const functionName = executorOptions.name;
     const params = executorOptions.parameters;
 
-    if (!this.functionMap.hasOwnProperty(functionName)) {
-      // Make retry request
-    } else {
-      const selectedFunction = this.functionMap[functionName];
+    if (!this.functionMap.hasOwnProperty(functionName))
+      throw new Error("Function not found");
 
-      if (isAsync(selectedFunction.function)) {
-        await selectedFunction.function(params);
-      } else {
-        selectedFunction.function(params);
-      }
+    const selectedFunction = this.functionMap[functionName];
+
+    if (isAsync(selectedFunction.function)) {
+      await selectedFunction.function(params);
+    } else {
+      selectedFunction.function(params);
     }
   }
 
@@ -118,8 +117,29 @@ class ActionIt {
         systemPrompt: this.systemPrompt,
       });
 
-    const functionExector =
+    let functionExector =
       this.getFunctionNameAndParamsFromResponse(completitionResponse);
+
+    if (!this.functionMap.hasOwnProperty(functionExector.name)) {
+      const userRetryContent = getChooseFunctionPrompt({
+        isRetry: true,
+        query: newInput,
+        functions: Object.values(this.functionMap),
+      });
+
+      this.openAIWrapper.addNewUserMessage({
+        role: "user",
+        content: userRetryContent,
+      });
+      const completitionRetryResponse =
+        await this.openAIWrapper.createChatRequestWithRetry({
+          systemPrompt: this.systemPrompt,
+        });
+
+      functionExector = this.getFunctionNameAndParamsFromResponse(
+        completitionRetryResponse
+      );
+    }
 
     await this.chooseAndExecuteFunction(functionExector);
   }

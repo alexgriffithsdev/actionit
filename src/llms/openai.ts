@@ -5,6 +5,8 @@ import {
   ChatCompletionRequestMessage,
 } from "openai";
 
+const gptTurboTokenLimit = 4096;
+
 interface OpenAIWrapperOptions {
   open_ai_api_key: string;
   max_tokens?: number;
@@ -62,6 +64,11 @@ class OpenAIWrapper {
 
   private async createChatCompletion(systemPrompt: string): Promise<string> {
     try {
+      // const messages = [
+      //   { role: "system", content: systemPrompt }:ChatRequ,
+      //   ...this.messages,
+      // ];
+
       const response = await this.openai.createChatCompletion({
         model: "gpt-3.5-turbo",
         messages: [{ role: "system", content: systemPrompt }, ...this.messages],

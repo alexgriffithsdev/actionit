@@ -1,4 +1,7 @@
-import { ChatCompletionRequestMessage } from "openai";
+import {
+  ChatCompletionRequestMessage,
+  ChatCompletionResponseMessage,
+} from "openai";
 import OpenAIWrapper from "./llms/openai";
 import { getChooseFunctionPrompt, getSystemPrompt } from "./llms/prompts";
 import { isAsync } from "./utils/functions";
@@ -75,7 +78,9 @@ class ActionIt {
     }
   }
 
-  private async chooseAndExecuteFunction(executorOptions: FunctionExecutor) {
+  private async chooseAndExecuteFunction(
+    executorOptions: FunctionExecutor
+  ): Promise<{ success: Boolean; error?: string }> {
     const functionName = executorOptions.name;
     const params = executorOptions.parameters;
 
@@ -84,10 +89,16 @@ class ActionIt {
 
     const selectedFunction = this.functionMap[functionName];
 
-    if (isAsync(selectedFunction.function)) {
-      await selectedFunction.function(params);
-    } else {
-      selectedFunction.function(params);
+    try {
+      if (isAsync(selectedFunction.function)) {
+        await selectedFunction.function(params);
+      } else {
+        selectedFunction.function(params);
+      }
+
+      return { success: true };
+    } catch (error: any) {
+      return { success: false, error: error.message };
     }
   }
 
@@ -113,31 +124,26 @@ class ActionIt {
           parameters: jsonResponse.parameters,
         },
       };
-    } else if (jsonResponse.hasOwnProperty("question_response")) {
+    } else if (jsonResponse.hasOwnProperty("follow_up_question")) {
       return {
-        followUpQuestion: jsonResponse.question_response,
+        followUpQuestion: jsonResponse.follow_up_question,
       };
     }
 
     throw new Error("Missing function or question response from LLM");
   }
 
-  async handleNewInput(singleUserMessage: string) {
-    const userContent = getChooseFunctionPrompt({
-      isRetry: false,
-      query: singleUserMessage,
-      functions: Object.values(this.functionMap),
-    });
-
-    const userMessage: ChatCompletionRequestMessage = {
-      role: "user",
-      content: userContent,
-    };
-
+  private async getAndHandleCompletitionResponse({
+    userMessage,
+    prevMessages,
+  }: {
+    userMessage: ChatCompletionRequestMessage;
+    prevMessages?: ChatCompletionRequestMessage[];
+  }): Promise<[ChatCompletionResponseMessage, ChatCompletionResponseMessage]> {
     const completitionResponse =
       await this.openAIWrapper.createChatRequestWithRetry({
         systemPrompt: this.systemPrompt,
-        messages: [userMessage],
+        messages: prevMessages ? [...prevMessages, userMessage] : [userMessage],
       });
 
     const completitionResponseJson =
@@ -154,13 +160,60 @@ class ActionIt {
       );
 
       if (this.functionMap.hasOwnProperty(functionExector.name)) {
-        await this.chooseAndExecuteFunction(functionExector);
+        const { success, error } = await this.chooseAndExecuteFunction(
+          functionExector
+        );
 
-        this.onResponseFn(`Function: ${functionExector.name} was executed.`);
+        if (success) {
+          this.onResponseFn(`Function: ${functionExector.name} was executed.`);
+        } else {
+          // Retry logic
+        }
       }
     } else {
       this.onResponseFn("Sorry something went wrong, can you try again?");
     }
+
+    return [userMessage, { role: "assistant", content: completitionResponse }];
+  }
+
+  async handleMessagesInput(
+    prevMessages: ChatCompletionRequestMessage[],
+    singleUserMessage: string,
+    state?: string
+  ) {
+    const userContent = getChooseFunctionPrompt({
+      isRetry: false,
+      query: singleUserMessage,
+      functions: Object.values(this.functionMap),
+      state,
+    });
+
+    const userMessage: ChatCompletionRequestMessage = {
+      role: "user",
+      content: userContent,
+    };
+
+    return await this.getAndHandleCompletitionResponse({
+      userMessage,
+      prevMessages,
+    });
+  }
+
+  async handleSingleInput(singleUserMessage: string, state?: string) {
+    const userContent = getChooseFunctionPrompt({
+      isRetry: false,
+      query: singleUserMessage,
+      functions: Object.values(this.functionMap),
+      state,
+    });
+
+    const userMessage: ChatCompletionRequestMessage = {
+      role: "user",
+      content: userContent,
+    };
+
+    return await this.getAndHandleCompletitionResponse({ userMessage });
   }
 }
 

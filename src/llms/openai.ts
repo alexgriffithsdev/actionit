@@ -5,8 +5,7 @@ import {
   ChatCompletionRequestMessage,
 } from "openai";
 import { getMaxMessageSubset } from "../utils/tokenLimits";
-
-const gptTurboTokenLimit = 4096;
+import { gptTurboTokenLimit } from "../constants/maxTokenLimits";
 
 interface OpenAIWrapperOptions {
   open_ai_api_key: string;
@@ -73,10 +72,17 @@ class OpenAIWrapper {
         gptTurboTokenLimit
       );
 
+      if (messagesSubset.length < 2) {
+        throw new Error(
+          "Messages exceeds the token window - only the system prompt can fit"
+        );
+      }
+
       const response = await this.openai.createChatCompletion({
         model: "gpt-3.5-turbo",
         messages: messagesSubset,
         max_tokens: this.maxTokens,
+        temperature: 0.5,
       });
       const answer = response.data as CreateChatCompletionResponse;
 

@@ -1,3 +1,4 @@
+import { ChatCompletionRequestMessage } from "openai";
 import { ActionIt } from "../../dist/index";
 import * as dotenv from "dotenv";
 dotenv.config();
@@ -9,17 +10,24 @@ interface Task {
 }
 
 const run = async () => {
+  const taskGroups: {
+    [key: string]: Task[];
+  } = {};
   let tasks: Task[] = [];
 
   const addTask = (task: Task) => {
+    if (!task.title) {
+      throw new Error("Missing task title");
+    }
+
     tasks.push(task);
   };
 
-  const removeTask = (taskName: string) => {
+  const removeTask = ({ taskName }: { taskName: string }) => {
     const taskIndex = tasks.findIndex((e) => e.title === taskName);
 
     if (taskIndex !== -1) {
-      tasks = tasks.splice(taskIndex, 1);
+      tasks.splice(taskIndex, 1);
     }
   };
 
@@ -68,9 +76,9 @@ const run = async () => {
     function: addTask,
     description: "Adds a new task",
     parameters: {
-      title: "string",
-      description: "string",
-      dueDate: "Date",
+      title: { type: "string", required: true },
+      description: { type: "string", required: false },
+      dueDate: { type: "Date", required: false },
     },
   });
 
@@ -79,7 +87,7 @@ const run = async () => {
     function: removeTask,
     description: "Removes a task by name",
     parameters: {
-      taskName: "string",
+      taskName: { type: "string", required: true },
     },
   });
 
@@ -95,34 +103,37 @@ const run = async () => {
     function: updateTask,
     description: "Updates a task by name",
     parameters: {
-      taskName: "string",
-      newTitle: "string",
-      newDescription: "string",
-      newDueDate: "Date",
+      taskName: { type: "string", required: true },
+      newTitle: { type: "string", required: false },
+      newDescription: { type: "string", required: false },
+      newDueDate: { type: "string", required: false },
     },
   });
 
-  await actionIt.handleNewInput(
-    "Create a task called get food, basically I need to go and buy food by monday 21st april 2023"
+  const messages: ChatCompletionRequestMessage[] = [];
+
+  const [userMessage, assistantMessage] = await actionIt.handleSingleInput(
+    "task get food for 10th may 2023",
+    `Task list: ${JSON.stringify(tasks)}`
   );
 
-  // console.log("Tasks: ", tasks);
+  messages.push(userMessage);
+  messages.push(assistantMessage);
 
-  await actionIt.handleNewInput(
-    "Create a task called email Dave, Need to wish Dave happy birthday for Tomorrow (29/1/2023)"
+  const [userMessage2, assistantMessage2] = await actionIt.handleMessagesInput(
+    messages,
+    "I meant add",
+    `Task list: ${JSON.stringify(tasks)}`
   );
 
-  // console.log("Tasks: ", tasks);
+  messages.push(userMessage2);
+  messages.push(assistantMessage2);
 
-  await actionIt.handleNewInput(
-    "Actually I need to delete the email dave task."
+  await actionIt.handleMessagesInput(
+    messages,
+    "Great thanks, task is to get food by 2/2/2023. I need to get milk, cheese and beef",
+    `Task list: ${JSON.stringify(tasks)}`
   );
-
-  // console.log("Tasks: ", tasks);
-
-  await actionIt.handleNewInput("Update the 'get food' task to be 5/5/2023");
-
-  // console.log("Tasks: ", tasks);
 };
 
 run();

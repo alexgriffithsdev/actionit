@@ -1,5 +1,21 @@
 import { ChatCompletionRequestMessage } from "openai";
 import { encoding_for_model } from "@dqbd/tiktoken";
+import { gptTurboTokenLimit } from "../constants/maxTokenLimits";
+
+export function numTokensFromString(
+  input: string,
+  model = "gpt-3.5-turbo"
+): number {
+  if (model === "gpt-3.5-turbo") {
+    const encoding = encoding_for_model(model);
+
+    return encoding.encode(input).length;
+  } else {
+    throw new Error(
+      `numTokensFromMessages() is not presently implemented for model ${model}.`
+    );
+  }
+}
 
 function numTokensFromMessage(
   message: ChatCompletionRequestMessage,
@@ -33,7 +49,7 @@ export function getMaxMessageSubset(
   messages: ChatCompletionRequestMessage[],
   systemPrompt: ChatCompletionRequestMessage,
   maxTokens: number,
-  maxTokenWindowSize = 4096
+  maxTokenWindowSize = gptTurboTokenLimit
 ): ChatCompletionRequestMessage[] {
   let currentTokens = numTokensFromMessage(systemPrompt);
 

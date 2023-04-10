@@ -2,7 +2,7 @@
   "name": "actionit",
   "version": "1.0.0",
   "description": "Build great text-to-action experiences with LLMs",
-  "main": "index.js",
+  "main": "dist/index.js",
   "scripts": {
     "test": "jest ./tests --no-cache",
     "build": "tsc -p ."

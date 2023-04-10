@@ -2,6 +2,7 @@
   "extends": "@tsconfig/recommended",
   "compilerOptions": {
     "sourceMap": true,
+    "declaration": true,
     "outDir": "dist",
     "target": "es2021" /* Set the JavaScript language version for emitted JavaScript and include compatible library declarations. */,
     "module": "commonjs" /* Specify what module code is generated. */,

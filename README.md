@@ -60,3 +60,7 @@ const [userMessage, assistantMessage] = await actionIt.handleSingleInput(
 - Ensure that functions have named arguments, as they will be used as the function args.
 - Always verify the types and null values of all variables passed to functions, as the model may miss a required function or provide it in the wrong type.
 - Be prepared for prompt injections – always implement authentication and authorization on top of any function passed to the model if they access or modify any data.
+
+### Feature requests
+
+Feel free to suggest any features/improvements that you would consider useful for interacting with functions via natural language. I will look at implementing any requests ASAP.

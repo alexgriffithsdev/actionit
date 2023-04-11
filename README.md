@@ -63,4 +63,4 @@ const [userMessage, assistantMessage] = await actionIt.handleSingleInput(
 
 ### Feature requests
 
-Feel free to suggest any features/improvements that you would consider useful for interacting with functions via natural language. I will look at implementing any requests ASAP.
+Feel free to suggest any features/improvements that you would consider useful for interacting with functions via natural language. I will look at implementing any requests ASAP!

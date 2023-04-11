@@ -2,12 +2,12 @@
 
 ActionIt is a text-to-action library built to make it easier to perform actions based on natural language input. It opens the way for applications that don't only retrieve information but actually interact with functions, extracting necessary parameters or asking follow-up questions where necessary.
 
-ActionIt is paving the way for a new era of human-software interactions.
+ActionIt is paving the way for the new era of human-software interactions.
 
 ## Features
 
-- Call and execute functions based on user input.
-- Exponential backoff with retries to handle rate limiting.
+- Effortlessly call and execute functions based on user input.
+- Exponential backoff with retries for seamless handling of rate limiting.
 - Sliding window approach to token limit cut off.
 
 ## Installation
@@ -57,6 +57,6 @@ const [userMessage, assistantMessage] = await actionIt.handleSingleInput(
 
 ### Notes
 
-- Functions must have named arguments as a parameter option will be used as the function args.
-- Check types and for null for all variables passed to functions since the model may miss a required function or provide it in the wrong type.
-- _Expect_ prompt injections - always run authentication and authorization on top of any function passed to the model.
+- Ensure that functions have named arguments, as they will be used as the function args.
+- Always verify the types and null values of all variables passed to functions, as the model may miss a required function or provide it in the wrong type.
+- Be prepared for prompt injections – always implement authentication and authorization on top of any function passed to the model if they access or modify any data.

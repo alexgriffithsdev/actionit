@@ -66,7 +66,6 @@ const run = async () => {
   const actionIt = new ActionIt({
     open_ai_api_key: process.env.OPEN_AI_API_KEY || "",
     on_response: (response: string) => {
-      console.log(response);
       console.log(tasks);
     },
   });

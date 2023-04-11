@@ -6,12 +6,7 @@ import {
 } from "openai";
 import { getMaxMessageSubset } from "../utils/tokenLimits";
 import { gptTurboTokenLimit } from "../constants/maxTokenLimits";
-
-interface OpenAIWrapperOptions {
-  open_ai_api_key: string;
-  max_tokens?: number;
-  max_retries: number;
-}
+import { OpenAIWrapperOptions } from "./openaiTypes";
 
 class OpenAIWrapper {
   private openai: OpenAIApi;

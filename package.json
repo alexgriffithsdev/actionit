@@ -1,6 +1,6 @@
 {
   "name": "actionit",
-  "version": "1.0.0",
+  "version": "0.0.1",
   "description": "Build great text-to-action experiences with LLMs",
   "main": "dist/index.js",
   "scripts": {
@@ -13,7 +13,16 @@
   },
   "keywords": [
     "LLMs",
-    "text-to-action"
+    "text-to-action",
+    "machine learning",
+    "ml",
+    "ai",
+    "gpt3",
+    "chain",
+    "prompt",
+    "prompt engineering",
+    "chatgpt",
+    "openai"
   ],
   "author": "Actionit",
   "license": "MIT",
@@ -31,9 +40,7 @@
     "typescript": "^5.0.4"
   },
   "dependencies": {
-    "openai": "^3.2.1"
-  },
-  "peerDependencies": {
+    "openai": "^3.2.1",
     "@dqbd/tiktoken": "^1.0.4"
   }
 }

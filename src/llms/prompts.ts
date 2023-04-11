@@ -1,7 +1,8 @@
-import { ActionItFunction } from "../actionIt";
+import { ActionItFunction } from "../actionItTypes";
 import { numTokensFromString } from "../utils/tokenLimits";
 
 const systemPrompt = `Assistant is a helpful function selector.
+Today's date is ${new Date().toDateString()}.
 Given a list of javascript function names and descriptions, assistant will engage in conversation with the user to determine which function to select.
 A user may also supply some existing state to help you make your decision.
 Each function has a list of parameters and their types which assistant should also complete based on the user's input.
@@ -47,18 +48,21 @@ export function getChooseFunctionPrompt({
   functions.forEach((fn) => {
     let functionPrompt = `\nName: ${fn.name}`;
     functionPrompt += `\nDescription: ${fn.description}`;
-    functionPrompt += `\nDefinition: ${fn.name}({ ${Object.keys(
-      fn.parameters
-    ).join(", ")} })`;
-    functionPrompt += `\nParameters: ${Object.keys(fn.parameters)
-      .map((paramName: string) => {
-        const param = fn.parameters[paramName];
+    functionPrompt += `\nDefinition: ${fn.name}({ ${
+      fn.parameters ? Object.keys(fn.parameters).join(", ") : ""
+    } })`;
 
-        return `\n- ${paramName} (${
-          param.required ? "required" : "optional"
-        }): ${param.type}`;
-      })
-      .join("")}`;
+    if (fn.parameters) {
+      functionPrompt += `\nParameters: ${Object.keys(fn.parameters)
+        .map((paramName: string) => {
+          const param = fn.parameters ? fn.parameters[paramName] : {};
+
+          return `\n- ${paramName} (${
+            param.required ? "required" : "optional"
+          }): ${param.type}`;
+        })
+        .join("")}`;
+    }
 
     functionPrompt += "\n";
 

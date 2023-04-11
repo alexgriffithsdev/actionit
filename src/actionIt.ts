@@ -5,41 +5,13 @@ import {
 import OpenAIWrapper from "./llms/openai";
 import { getChooseFunctionPrompt, getSystemPrompt } from "./llms/prompts";
 import { isAsync } from "./utils/functions";
-
-interface AnyFunction {
-  (...args: any[]): any;
-}
-
-interface HandleResponseFunction {
-  (inputString: string): void;
-}
-
-interface ActionItOptions {
-  open_ai_api_key: string;
-  max_retries?: number;
-  on_response: HandleResponseFunction;
-}
-
-export interface ActionItFunction {
-  name: string;
-  function: AnyFunction;
-  description: string;
-  parameters: {
-    [key: string]: any;
-  };
-}
-
-interface FunctionExecutor {
-  name: string;
-  parameters: {
-    [key: string]: any;
-  };
-}
-
-interface LlmResponseJson {
-  followUpQuestion?: string;
-  functionExecutor?: FunctionExecutor;
-}
+import {
+  HandleResponseFunction,
+  ActionItFunction,
+  ActionItOptions,
+  FunctionExecutor,
+  LlmResponseJson,
+} from "./actionItTypes";
 
 class ActionIt {
   private openAiApiKey: string;

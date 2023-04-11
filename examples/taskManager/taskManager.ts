@@ -113,27 +113,12 @@ const run = async () => {
   const messages: ChatCompletionRequestMessage[] = [];
 
   const [userMessage, assistantMessage] = await actionIt.handleSingleInput(
-    "task get food for 10th may 2023",
+    "Add a task to get food by tomorrow. I need to get milk, cheese and beef",
     `Task list: ${JSON.stringify(tasks)}`
   );
 
   messages.push(userMessage);
   messages.push(assistantMessage);
-
-  const [userMessage2, assistantMessage2] = await actionIt.handleMessagesInput(
-    messages,
-    "I meant add",
-    `Task list: ${JSON.stringify(tasks)}`
-  );
-
-  messages.push(userMessage2);
-  messages.push(assistantMessage2);
-
-  await actionIt.handleMessagesInput(
-    messages,
-    "Great thanks, task is to get food by 2/2/2023. I need to get milk, cheese and beef",
-    `Task list: ${JSON.stringify(tasks)}`
-  );
 };
 
 run();

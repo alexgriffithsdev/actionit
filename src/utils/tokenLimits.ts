@@ -1,4 +1,4 @@
-import { ChatCompletionRequestMessage } from "openai";
+import { type ChatCompletionRequestMessage } from "openai";
 import { encoding_for_model } from "@dqbd/tiktoken";
 import { gptTurboTokenLimit } from "../constants/maxTokenLimits";
 

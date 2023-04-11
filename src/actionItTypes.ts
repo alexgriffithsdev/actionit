@@ -1,10 +1,6 @@
-interface AnyFunction {
-  (...args: any[]): any;
-}
+type AnyFunction = (...args: any[]) => any;
 
-export interface HandleResponseFunction {
-  (inputString: string): void;
-}
+export type HandleResponseFunction = (inputString: string) => void;
 
 export interface ActionItOptions {
   open_ai_api_key: string;
@@ -16,16 +12,12 @@ export interface ActionItFunction {
   name: string;
   function: AnyFunction;
   description: string;
-  parameters?: {
-    [key: string]: any;
-  };
+  parameters?: Record<string, any>;
 }
 
 export interface FunctionExecutor {
   name: string;
-  parameters?: {
-    [key: string]: any;
-  };
+  parameters?: Record<string, any>;
 }
 
 export interface LlmResponseJson {

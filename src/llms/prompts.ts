@@ -1,4 +1,4 @@
-import { ActionItFunction } from "../actionItTypes";
+import { type ActionItFunction } from "../actionItTypes";
 import { numTokensFromString } from "../utils/tokenLimits";
 
 const systemPrompt = `Assistant is a helpful function selector.
@@ -32,7 +32,7 @@ export function getChooseFunctionPrompt({
   functions,
   state,
 }: {
-  isRetry: Boolean;
+  isRetry: boolean;
   query: string;
   functions: ActionItFunction[];
   state?: string;
@@ -49,17 +49,19 @@ export function getChooseFunctionPrompt({
     let functionPrompt = `\nName: ${fn.name}`;
     functionPrompt += `\nDescription: ${fn.description}`;
     functionPrompt += `\nDefinition: ${fn.name}({ ${
-      fn.parameters ? Object.keys(fn.parameters).join(", ") : ""
+      fn.parameters != null ? Object.keys(fn.parameters).join(", ") : ""
     } })`;
 
-    if (fn.parameters) {
+    if (fn.parameters != null) {
       functionPrompt += `\nParameters: ${Object.keys(fn.parameters)
         .map((paramName: string) => {
-          const param = fn.parameters ? fn.parameters[paramName] : {};
+          const param = fn.parameters != null ? fn.parameters[paramName] : {};
+          const isRequired: string = (param.required as boolean)
+            ? "required"
+            : "optional";
+          const paramType: string = param.type !== undefined ? param.type : "";
 
-          return `\n- ${paramName} (${
-            param.required ? "required" : "optional"
-          }): ${param.type}`;
+          return `\n- ${paramName} (${isRequired}): ${paramType}`;
         })
         .join("")}`;
     }
@@ -71,7 +73,7 @@ export function getChooseFunctionPrompt({
     if (totalTokens >= 0) prompt += functionPrompt;
   });
 
-  if (state) {
+  if (state != null) {
     prompt += `\nState: ${state}\n`;
   }
 

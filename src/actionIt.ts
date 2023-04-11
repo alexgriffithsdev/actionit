@@ -1,30 +1,36 @@
 import {
-  ChatCompletionRequestMessage,
-  ChatCompletionResponseMessage,
+  type ChatCompletionRequestMessage,
+  type ChatCompletionResponseMessage,
 } from "openai";
 import OpenAIWrapper from "./llms/openai";
 import { getChooseFunctionPrompt, getSystemPrompt } from "./llms/prompts";
 import { isAsync } from "./utils/functions";
 import {
-  HandleResponseFunction,
-  ActionItFunction,
-  ActionItOptions,
-  FunctionExecutor,
-  LlmResponseJson,
+  type HandleResponseFunction,
+  type ActionItFunction,
+  type ActionItOptions,
+  type FunctionExecutor,
+  type LlmResponseJson,
 } from "./actionItTypes";
 
 class ActionIt {
-  private openAiApiKey: string;
-  private maxRetries: number;
-  private openAIWrapper: OpenAIWrapper;
-  private onResponseFn: HandleResponseFunction;
+  private readonly openAiApiKey: string;
 
-  private functionMap: { [key: string]: ActionItFunction } = {};
+  private readonly maxRetries: number;
 
-  private systemPrompt = getSystemPrompt();
+  private readonly openAIWrapper: OpenAIWrapper;
+
+  private readonly onResponseFn: HandleResponseFunction;
+
+  private functionMap: Record<string, ActionItFunction> = {};
+
+  private readonly systemPrompt = getSystemPrompt();
 
   constructor(options: ActionItOptions) {
-    if (!options.open_ai_api_key) {
+    if (
+      options.open_ai_api_key === undefined ||
+      options.open_ai_api_key === ""
+    ) {
       throw new Error("Missing open_ai_api_key");
     }
 
@@ -38,9 +44,9 @@ class ActionIt {
     });
   }
 
-  addFunction(func: ActionItFunction) {
-    if (func.name) {
-      if (this.functionMap.hasOwnProperty(func.name)) {
+  addFunction(func: ActionItFunction): void {
+    if (func.name !== undefined && func.name !== "") {
+      if (Object.prototype.hasOwnProperty.call(this.functionMap, func.name)) {
         this.functionMap[func.name + "2"] = func;
       } else {
         this.functionMap[func.name] = func;
@@ -52,11 +58,11 @@ class ActionIt {
 
   private async chooseAndExecuteFunction(
     executorOptions: FunctionExecutor
-  ): Promise<{ success: Boolean; error?: string }> {
+  ): Promise<{ success: boolean; error?: string }> {
     const functionName = executorOptions.name;
     const params = executorOptions.parameters;
 
-    if (!this.functionMap.hasOwnProperty(functionName))
+    if (!Object.prototype.hasOwnProperty.call(this.functionMap, functionName))
       throw new Error("Function not found");
 
     const selectedFunction = this.functionMap[functionName];
@@ -84,19 +90,21 @@ class ActionIt {
 
       const extractedJsonString = response.match(regex);
 
-      if (extractedJsonString && extractedJsonString.length) {
+      if (extractedJsonString != null && extractedJsonString.length > 0) {
         jsonResponse = JSON.parse(extractedJsonString[0]);
       }
     }
 
-    if (jsonResponse.hasOwnProperty("function_name")) {
+    if (Object.prototype.hasOwnProperty.call(jsonResponse, "function_name")) {
       return {
         functionExecutor: {
           name: jsonResponse.function_name,
           parameters: jsonResponse.parameters,
         },
       };
-    } else if (jsonResponse.hasOwnProperty("follow_up_question")) {
+    } else if (
+      Object.prototype.hasOwnProperty.call(jsonResponse, "follow_up_question")
+    ) {
       return {
         followUpQuestion: jsonResponse.follow_up_question,
       };
@@ -115,15 +123,16 @@ class ActionIt {
     const completitionResponse =
       await this.openAIWrapper.createChatRequestWithRetry({
         systemPrompt: this.systemPrompt,
-        messages: prevMessages ? [...prevMessages, userMessage] : [userMessage],
+        messages:
+          prevMessages != null ? [...prevMessages, userMessage] : [userMessage],
       });
 
     const completitionResponseJson =
       this.handleLlmResponse(completitionResponse);
 
-    if (completitionResponseJson.followUpQuestion) {
+    if (completitionResponseJson.followUpQuestion != null) {
       this.onResponseFn(completitionResponseJson.followUpQuestion);
-    } else if (completitionResponseJson.functionExecutor) {
+    } else if (completitionResponseJson.functionExecutor != null) {
       const functionExector: FunctionExecutor =
         completitionResponseJson.functionExecutor;
 
@@ -131,8 +140,13 @@ class ActionIt {
         `Going to try and execute function: ${functionExector.name}`
       );
 
-      if (this.functionMap.hasOwnProperty(functionExector.name)) {
-        const { success, error } = await this.chooseAndExecuteFunction(
+      if (
+        Object.prototype.hasOwnProperty.call(
+          this.functionMap,
+          functionExector.name
+        )
+      ) {
+        const { success } = await this.chooseAndExecuteFunction(
           functionExector
         );
 
@@ -153,7 +167,7 @@ class ActionIt {
     prevMessages: ChatCompletionRequestMessage[],
     singleUserMessage: string,
     state?: string
-  ) {
+  ): Promise<[ChatCompletionResponseMessage, ChatCompletionResponseMessage]> {
     const userContent = getChooseFunctionPrompt({
       isRetry: false,
       query: singleUserMessage,
@@ -172,7 +186,10 @@ class ActionIt {
     });
   }
 
-  async handleSingleInput(singleUserMessage: string, state?: string) {
+  async handleSingleInput(
+    singleUserMessage: string,
+    state?: string
+  ): Promise<[ChatCompletionResponseMessage, ChatCompletionResponseMessage]> {
     const userContent = getChooseFunctionPrompt({
       isRetry: false,
       query: singleUserMessage,

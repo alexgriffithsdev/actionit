@@ -1,4 +1,4 @@
-export function isAsync(fn: Function): boolean {
+export function isAsync(fn: (...args: any[]) => any): boolean {
   const fnStr = fn.toString().trim();
   return !!(
     fnStr.startsWith("async ") || // async function declaration

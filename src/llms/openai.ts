@@ -1,17 +1,18 @@
 import {
   Configuration,
   OpenAIApi,
-  CreateChatCompletionResponse,
-  ChatCompletionRequestMessage,
+  type ChatCompletionRequestMessage,
 } from "openai";
 import { getMaxMessageSubset } from "../utils/tokenLimits";
 import { gptTurboTokenLimit } from "../constants/maxTokenLimits";
-import { OpenAIWrapperOptions } from "./openaiTypes";
+import { type OpenAIWrapperOptions } from "./openaiTypes";
 
 class OpenAIWrapper {
-  private openai: OpenAIApi;
-  private maxTokens: number;
-  private maxRetries: number;
+  private readonly openai: OpenAIApi;
+
+  private readonly maxTokens: number;
+
+  private readonly maxRetries: number;
 
   constructor(options: OpenAIWrapperOptions) {
     const configuration = new Configuration({
@@ -39,20 +40,21 @@ class OpenAIWrapper {
 
         return chatCompletion;
       } catch (error: any) {
-        const status = error.response ? error.response.status : null;
+        const status =
+          error.response !== undefined ? error.response.status : null;
 
         if (retries < this.maxRetries && status === 429) {
           const timeToWait = Math.pow(2, retries) * 1000;
           await new Promise((resolve) => setTimeout(resolve, timeToWait));
 
-          return makeRequest(retries + 1);
+          return await makeRequest(retries + 1);
         } else {
           throw error;
         }
       }
     };
 
-    return makeRequest();
+    return await makeRequest();
   }
 
   private async createChatCompletion(
@@ -79,14 +81,14 @@ class OpenAIWrapper {
         max_tokens: this.maxTokens,
         temperature: 0.5,
       });
-      const answer = response.data as CreateChatCompletionResponse;
+      const answer = response.data;
 
-      const answerString = answer.choices[0]?.message?.content || "";
+      const answerString = answer.choices[0]?.message?.content ?? "";
       // this.messages.push({ role: "assistant", content: answerString });
 
       return answerString;
     } catch (error: any) {
-      if (error.response) {
+      if (error.response !== undefined) {
         console.log(error.response.status);
         console.log(error.response.data);
       } else {

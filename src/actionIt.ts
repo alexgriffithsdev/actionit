@@ -1,7 +1,4 @@
-import {
-  type ChatCompletionRequestMessage,
-  type ChatCompletionResponseMessage,
-} from "openai";
+import { type ChatCompletionRequestMessage } from "openai";
 import OpenAIWrapper from "./llms/openai";
 import { getChooseFunctionPrompt, getSystemPrompt } from "./llms/prompts";
 import { isAsync } from "./utils/functions";
@@ -11,6 +8,7 @@ import {
   type ActionItOptions,
   type FunctionExecutor,
   type LlmResponseJson,
+  type UserAssistantAndClientMessageArray,
 } from "./actionItTypes";
 
 class ActionIt {
@@ -119,7 +117,8 @@ class ActionIt {
   }: {
     userMessage: ChatCompletionRequestMessage;
     prevMessages?: ChatCompletionRequestMessage[];
-  }): Promise<[ChatCompletionResponseMessage, ChatCompletionResponseMessage]> {
+  }): Promise<UserAssistantAndClientMessageArray> {
+    let responseMessage: string = "";
     const completitionResponse =
       await this.openAIWrapper.createChatRequestWithRetry({
         systemPrompt: this.systemPrompt,
@@ -131,14 +130,19 @@ class ActionIt {
       this.handleLlmResponse(completitionResponse);
 
     if (completitionResponseJson.followUpQuestion != null) {
-      this.onResponseFn(completitionResponseJson.followUpQuestion);
+      if (this.onResponseFn != null) {
+        responseMessage = completitionResponseJson.followUpQuestion;
+        this.onResponseFn(completitionResponseJson.followUpQuestion);
+      }
     } else if (completitionResponseJson.functionExecutor != null) {
       const functionExector: FunctionExecutor =
         completitionResponseJson.functionExecutor;
 
-      this.onResponseFn(
-        `Going to try and execute function: ${functionExector.name}`
-      );
+      if (this.onResponseFn != null) {
+        const execMessage = `Going to try and execute function: ${functionExector.name}`;
+        responseMessage = execMessage;
+        this.onResponseFn(execMessage);
+      }
 
       if (
         Object.prototype.hasOwnProperty.call(
@@ -151,23 +155,37 @@ class ActionIt {
         );
 
         if (success) {
-          this.onResponseFn(`Function: ${functionExector.name} was executed.`);
+          if (this.onResponseFn != null) {
+            const execCompleteMessage = `Function: ${functionExector.name} was executed.`;
+
+            responseMessage = execCompleteMessage;
+            this.onResponseFn(execCompleteMessage);
+          }
         } else {
           // Retry logic
         }
       }
     } else {
-      this.onResponseFn("Sorry something went wrong, can you try again?");
+      if (this.onResponseFn != null) {
+        const errorMessage = "Sorry something went wrong, can you try again?";
+
+        responseMessage = errorMessage;
+        this.onResponseFn(errorMessage);
+      }
     }
 
-    return [userMessage, { role: "assistant", content: completitionResponse }];
+    return [
+      userMessage,
+      { role: "assistant", content: completitionResponse },
+      responseMessage,
+    ];
   }
 
   async handleMessagesInput(
     prevMessages: ChatCompletionRequestMessage[],
     singleUserMessage: string,
     state?: string
-  ): Promise<[ChatCompletionResponseMessage, ChatCompletionResponseMessage]> {
+  ): Promise<UserAssistantAndClientMessageArray> {
     const userContent = getChooseFunctionPrompt({
       isRetry: false,
       query: singleUserMessage,
@@ -189,7 +207,7 @@ class ActionIt {
   async handleSingleInput(
     singleUserMessage: string,
     state?: string
-  ): Promise<[ChatCompletionResponseMessage, ChatCompletionResponseMessage]> {
+  ): Promise<UserAssistantAndClientMessageArray> {
     const userContent = getChooseFunctionPrompt({
       isRetry: false,
       query: singleUserMessage,

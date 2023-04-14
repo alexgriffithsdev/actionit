@@ -1,3 +1,5 @@
+import { type ChatCompletionResponseMessage } from "openai";
+
 type AnyFunction = (...args: any[]) => any;
 
 export type HandleResponseFunction = (inputString: string) => void;
@@ -24,3 +26,9 @@ export interface LlmResponseJson {
   followUpQuestion?: string;
   functionExecutor?: FunctionExecutor;
 }
+
+export type UserAssistantAndClientMessageArray = [
+  ChatCompletionResponseMessage,
+  ChatCompletionResponseMessage,
+  string
+];

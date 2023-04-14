@@ -130,17 +130,19 @@ class ActionIt {
       this.handleLlmResponse(completitionResponse);
 
     if (completitionResponseJson.followUpQuestion != null) {
+      responseMessage = completitionResponseJson.followUpQuestion;
+
       if (this.onResponseFn != null) {
-        responseMessage = completitionResponseJson.followUpQuestion;
         this.onResponseFn(completitionResponseJson.followUpQuestion);
       }
     } else if (completitionResponseJson.functionExecutor != null) {
       const functionExector: FunctionExecutor =
         completitionResponseJson.functionExecutor;
 
+      const execMessage = `Going to try and execute function: ${functionExector.name}`;
+      responseMessage = execMessage;
+
       if (this.onResponseFn != null) {
-        const execMessage = `Going to try and execute function: ${functionExector.name}`;
-        responseMessage = execMessage;
         this.onResponseFn(execMessage);
       }
 
@@ -155,10 +157,11 @@ class ActionIt {
         );
 
         if (success) {
-          if (this.onResponseFn != null) {
-            const execCompleteMessage = `Function: ${functionExector.name} was executed.`;
+          const execCompleteMessage = `Function: ${functionExector.name} was executed.`;
 
-            responseMessage = execCompleteMessage;
+          responseMessage = execCompleteMessage;
+
+          if (this.onResponseFn != null) {
             this.onResponseFn(execCompleteMessage);
           }
         } else {
